@@ -1,0 +1,87 @@
+/* Sfondo completo e font */
+body {
+  background-color: #1a002d;
+}
+
+.rbc-calendar {
+  background: linear-gradient(135deg, #2a003f, #1a002d);
+  color: #eee;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Intestazioni (giorni della settimana) */
+.rbc-header {
+  background-color: #3a005a;
+  color: #ffffff;
+  border-bottom: 1px solid #5e2e91;
+  text-align: center;
+}
+
+/* Celle del calendario (giorni) */
+.rbc-day-bg {
+  background-color: transparent;
+  border-left: 1px solid #5e2e91 !important;
+}
+
+/* Riga successiva del mese */
+.rbc-month-row + .rbc-month-row {
+  border-top: 1px solid #5e2e91 !important;
+}
+
+/* Giorno corrente evidenziato */
+.rbc-today {
+  background-color: rgba(138, 43, 226, 0.1);
+}
+
+/* Eventi */
+.rbc-event {
+  background-color: #8a2be2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 2px 4px;
+  font-weight: bold;
+}
+
+.rbc-selected {
+  background-color: #b266ff !important;
+}
+
+/* Barra di navigazione e pulsanti */
+.rbc-toolbar {
+  background-color: #2a003f;
+  border-bottom: 1px solid #5e2e91;
+  color: white;
+}
+
+.rbc-toolbar button {
+  background: #5e2e91;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  margin: 0 3px;
+  border-radius: 6px;
+  cursor: pointer;
+  
+}
+
+.rbc-toolbar button:hover {
+  background: #8a2be2 !important;
+}
+
+.rbc-toolbar button:focus {
+  background-color: #b266ff !important;
+}
+
+/* Vista giorno/settimana: ore e slot */
+.rbc-timeslot-group {
+  border-bottom: 1px solid #5e2e91 !important;
+}
+
+.rbc-time-slot {
+  border-top: 1px solid #5e2e91 !important;
+}
+
+.rbc-time-content > * + * {
+  border-left: 1px solid #5e2e91 !important;
+}
