@@ -12,7 +12,9 @@ import enUS from 'date-fns/locale/en-US'
 import { useEffect, useState } from 'react'
 import './calendar.css'
 import { useSelector, useDispatch } from 'react-redux'
-import { addEvent, removeEvent, setEvents} from '../redux/eventSlice'
+import { addEvent, removeEvent, setEvents, modifyEvent} from '../redux/eventSlice'
+import EventModal from './eventModal';
+
 
 const locales = {
   'en-US': enUS
@@ -31,22 +33,55 @@ const DnDCalendar = withDragAndDrop(BigCalendar)
 
 export default function MyCalendar() {
 
-  const events = useSelector((state) => state.events.events);
-  const lenght = useSelector((state) => state.events.lenght);
+  const notSerilizedEvents = useSelector((state) => state.events.events);
+  const events = notSerilizedEvents.map(item => {
+    return {
+      ...item,
+      start: new Date(item.start),
+      end: new Date(item.end),
+    }
+
+  })
+  
   const dispatch = useDispatch();
   const [newEvent, setNewEvent] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  const handleSelectSlot = (slotInfo) => {
-    
-    const tmp = {
-        id: lenght,
-        title: '',
-        start: slotInfo.start,
-        end: slotInfo.end,
-        desc: ''
-    };
+  function slotPropGetter(date) {
+    const hour = date.getHours();
+    if ((hour >= 0 && hour < 9) || hour === 13 || (hour >= 18 && hour <= 23)) 
+    {
+      return {
+        style: {
+          backgroundColor: 'rgba(224,224,224,0.3)',
+          pointerEvents: 'none',
+          opacity: 0.5,
+        }
+      };
+    }
+    return {};
+  }
 
+
+  function isTimeAllowed(start, end) {
+    const isBlocked = (hour) => (hour >= 0 && hour < 9) || hour === 13 || (hour >= 18 && hour <= 23);
+    let current = new Date(start);
+    while (current < end) {
+      if (isBlocked(current.getHours())) return false;
+      current.setHours(current.getHours() + 1, 0, 0, 0);
+    }
+    return true;
+  }
+
+  const handleSelectSlot = (slotInfo) => {
+    if (!isTimeAllowed(slotInfo.start, slotInfo.end)) return;
+    const tmp = {
+      id: Date.now(),
+      title: '',
+      start: slotInfo.start,
+      end: slotInfo.end,
+      desc: ''
+    };
     setNewEvent(tmp);
   };
 
@@ -60,32 +95,74 @@ export default function MyCalendar() {
     setNewEvent(prev => ({...prev, desc: e.target.value}));
   }
 
-  const serializeDate = (e) => {
-    setNewEvent(prev => ({
-      ...prev, 
-      start: newEvent.start.toISOString(), 
-      end: newEvent.end.toISOString()
-    }));
+  function serializeEvent(ev) {
+    return {
+      ...ev,
+      start: ev.start instanceof Date ? ev.start.toISOString() : ev.start,
+      end: ev.end instanceof Date ? ev.end.toISOString() : ev.end,
+    };
+  }
+  function serializeEvents(events) {
+    return events.map(serializeEvent);
   }
 
-
   const handleEventDrop = ({ event, start, end }) => {
-    const updatedEvent = { ...event, start, end }
+    if (!isTimeAllowed(start, end)) return;
+    const updatedEvent = { ...event, start, end };
     const nextEvents = events.map(ev =>
       ev.id === event.id ? updatedEvent : ev
-    )
-    dispatch(setEvents(nextEvents))
+    );
+    dispatch(setEvents(serializeEvents(nextEvents)));
   }
 
   const handleEventResize = ({ event, start, end }) => {
+    if (!isTimeAllowed(start, end)) return;
     const nextEvents = events.map(ev =>
-      ev.id === event.id ? { ...event, start, end } : ev
-    )
-    dispatch(setEvents(nextEvents))
+      ev.id === event.id ? { ...ev, start, end } : ev
+    );
+    dispatch(setEvents(serializeEvents(nextEvents)));
   }
 
+  const onStartTimeChange = (e) => {
+    const [hours, minutes] = e.target.value.split(':');
+    const newStart = new Date(newEvent.start);
+    newStart.setHours(hours);
+    newStart.setMinutes(minutes);
+    setNewEvent(prev => ({ ...prev, start: newStart }));
+  };
+  const onEndTimeChange = (e) => {
+    const [hours, minutes] = e.target.value.split(':');
+    const newEnd = new Date(newEvent.end);
+    newEnd.setHours(hours);
+    newEnd.setMinutes(minutes);
+    setNewEvent(prev => ({ ...prev, end: newEnd }));
+  };
+  const onAdd = () => {
+    if (!isTimeAllowed(newEvent.start, newEvent.end)) {
+      alert('Orario non consentito!');
+      return;
+    }
+    if(events.some(ev => ev.id === newEvent.id)) {
+      dispatch(modifyEvent(serializeEvent(newEvent)));
+    }else{
+      dispatch(addEvent(serializeEvent(newEvent)));
+    }
+    setNewEvent(null);
+  };
+  const onCloseAdd = () => setNewEvent(null);
+
+  const onCloseDetail = () => setSelectedEvent(null);
+  const onRemove = () => {
+    dispatch(removeEvent(serializeEvent(newEvent)));
+    setNewEvent(null);
+  };
+
+  const handleSelectEvent = (event) => {
+    setNewEvent(event);
+  };
+
   return (
-    <div className="h-screen p-4">
+    <div>
       <DnDCalendar 
         
         localizer={localizer}
@@ -93,94 +170,26 @@ export default function MyCalendar() {
         events={events}
         defaultView='week'
         onSelectSlot={handleSelectSlot}
-        onSelectEvent={event => setSelectedEvent(event)}
+        onSelectEvent={handleSelectEvent}
         startAccessor="start"
         onEventDrop={handleEventDrop}
         onEventResize={handleEventResize}
         resizable
         endAccessor="end"
-        style={{ height: 700 }}
+        slotPropGetter={slotPropGetter}
+        style={{ height: '100%', minHeight: 400, maxHeight: '95vh', width: '100%' }}
       />
 
-      {selectedEvent && (
-        <div style={{
-          position: 'fixed',
-          top: '30%',
-          left: '50%',
-          transform: 'translate(-50%, -30%)',
-          background: 'white',
-          padding: '20px',
-          border: '1px solid #ccc',
-          borderRadius: '8px',
-          zIndex: 1000
-        }}>
-          <h3>{selectedEvent.title}</h3>
-          <p><strong>Inizio:</strong> {selectedEvent.start.toLocaleString()}</p>
-          <p><strong>Fine:</strong> {selectedEvent.end.toLocaleString()}</p>
-          <p><strong>Descrizione:</strong> {selectedEvent.desc}</p>
-          <button onClick={() => setSelectedEvent(null)}>Chiudi</button>
-          <button onClick={() => {
-            dispatch(removeEvent(selectedEvent));
-            setSelectedEvent(null);
-          }}>Rimuovi</button>
-        </div>
-      )}
-
-       {newEvent && (
-        <div style={{
-          position: 'fixed',
-          top: '30%',
-          left: '50%',
-          transform: 'translate(-50%, -30%)',
-          background: '#170122',
-          color: 'white',
-          padding: '20px',
-          border: '1px solid #ccc',
-          borderRadius: '8px',
-          zIndex: 1000
-        }}>
-          <h3>Titolo</h3>
-          <input type='text' placeholder="..." value={newEvent.title} onChange={titleChange}></input>
-          <br></br>
-          <h3>Descrizione</h3>
-          <input type='text' placeholder="..." value={newEvent.desc} onChange={descChange}></input>
-          <br></br>
-          <h3>Inizio</h3>
-          <input
-          type="time"
-          value={newEvent.start ? newEvent.start.toTimeString().slice(0,5) : ''}
-          onChange={(e) => {
-            const [hours, minutes] = e.target.value.split(':');
-            const newStart = new Date(newEvent.start);
-            newStart.setHours(hours);
-            newStart.setMinutes(minutes);
-            setNewEvent(prev => ({ ...prev, start: newStart }));
-          }}
-          />
-
-        <h3>Fine</h3>
-        <input
-          type="time"
-          value={newEvent.end ? newEvent.end.toTimeString().slice(0,5) : ''}
-          onChange={(e) => {
-            const [hours, minutes] = e.target.value.split(':');
-            const newEnd = new Date(newEvent.end);
-            newEnd.setHours(hours);
-            newEnd.setMinutes(minutes);
-            setNewEvent(prev => ({ ...prev, end: newEnd }));
-          }}
-        />
-        <br></br>
-        <br></br>
-          <button onClick={() => {
-            dispatch(addEvent(newEvent));
-            setNewEvent(null);
-            }}>Aggiungi</button>
-          <br></br>
-          <br></br>
-          <button onClick={() => setNewEvent(null)}>Chiudi</button>
-        </div>
-      )}
+      <EventModal
+        newEvent={newEvent}
+        onTitleChange={titleChange}
+        onDescChange={descChange}
+        onStartTimeChange={onStartTimeChange}
+        onEndTimeChange={onEndTimeChange}
+        onAdd={onAdd}
+        onClose={onCloseAdd}
+        onRemove={onRemove}
+      />
     </div>
   )
 }

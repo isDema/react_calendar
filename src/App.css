@@ -1,22 +1,33 @@
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 .container {
   display: flex;
-  gap: 10px; /* spazio tra i box */
-  height: 100%;
+  gap: 10px;
+  height: 100vh;
 }
 
 .box1 {
-  flex: 1; /* i due box dividono lo spazio a metà */
+  flex: 1;
   background-color: #8a2be2;
   padding: 10px;
   border-radius: 8px;
   text-align: center;
-
+  height: 100%;
 }
+
 .box2 {
-  flex: 2; /* i due box dividono lo spazio a metà */
+  flex: 2;
   background-color: #8a2be2;
   padding: 10px;
   border-radius: 8px;
   text-align: center;
-  
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  max-width: 1400px;
 }
