@@ -160,9 +160,35 @@ export default function MyCalendar() {
   const handleSelectEvent = (event) => {
     setNewEvent(event);
   };
+  
+  const handleDragOver = (e) => {
+    e.preventDefault(); // Necessario per permettere il drop
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    try {
+      const data = e.dataTransfer.getData('application/json');
+      if (!data) return;
+      const alias = JSON.parse(data);
+      // Imposta l'evento con start e end ora correnti, personalizza se vuoi usare slot
+      const now = new Date();
+      const end = new Date(now.getTime() + 60 * 60 * 1000); // +1 ora
+      const newEv = {
+        id: Date.now(),
+        title: alias.title,
+        desc: alias.desc,
+        start: now,
+        end: end
+      };
+      dispatch(addEvent(serializeEvent(newEv)));
+    } catch (err) {
+      // Gestione errori parsing
+    }
+  };
 
   return (
-    <div>
+    <div onDragOver={handleDragOver} onDrop={handleDrop}>
       <DnDCalendar 
         
         localizer={localizer}
